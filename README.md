@@ -7,9 +7,9 @@ Small research project with tweaks to Sitecore Links Database.
 
 ###Optimization to Links maintenance
 The links update is triggered via the following events:
-*item:saved
-*item:deleted
-*item:versionRemoved
+* item:saved
+* item:deleted
+* item:versionRemoved
 
 This project patches the implementation of these event handlers with an alternative way of connecting to Links Database.
 This approach proved to be helpful for some installations where such operations as item save were either extremely slowed down or terminated with a SQL timeout on Links Database.
