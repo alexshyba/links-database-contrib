@@ -17,6 +17,9 @@ In addition, the code offloads the UI thread and performs the update in a backgr
 
 ###FrontEndLinkDatabase
 This component approaches the problem of shared links database in a two server environment (separate CM and CD).
+In addition to keeping a separate reference to the front-end links db, the project ships with the following event handlers that ensure that front-end links database is maintained on during publishing:
+*publish:itemProcessing
+*publish:itemProcessed
 
 Read more:
 http://sitecoreblog.alexshyba.com/2010/09/optimizing-sitecore-link-database.html
