@@ -11,8 +11,8 @@
     <ProjectTypeGuids>{349c5851-65df-11da-9384-00065b846f21};{fae04ec0-301f-11d3-bf4b-00c04f79efbc}</ProjectTypeGuids>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Sitecorian.LinkDatabaseContrib</RootNamespace>
-    <AssemblyName>Sitecorian.LinkDatabaseContrib</AssemblyName>
+    <RootNamespace>Sitecore.LinkDatabaseContrib</RootNamespace>
+    <AssemblyName>Sitecore.LinkDatabaseContrib</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <TargetFrameworkProfile />
     <FileUpgradeFlags>
@@ -71,7 +71,7 @@
     <Compile Include="Config.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="App_Config\Include\Sitecorian.LinkDatabaseContrib.config" />
+    <Content Include="App_Config\Include\Sitecore.LinkDatabaseContrib.config" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

@@ -1,4 +1,4 @@
-﻿namespace Sitecorian.LinkDatabaseContrib.Managers
+﻿namespace Sitecore.LinkDatabaseContrib.Managers
 {
     public class StringUtil
     {

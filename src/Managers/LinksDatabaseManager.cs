@@ -1,40 +1,105 @@
 ﻿using System;
 using System.Configuration;
 using System.Data.SqlClient;
+using System.Threading;
 using Sitecore.Configuration;
 using Sitecore.Data.Items;
 using Sitecore.Diagnostics;
-using Sitecore.Jobs;
 using Sitecore.Links;
-using Sitecore;
-using Sitecorian.LinkDatabaseContrib.Configuration;
+using Sitecore.Security.Accounts;
+using Sitecore.Threading;
 
-namespace Sitecorian.LinkDatabaseContrib.Managers
+namespace Sitecore.LinkDatabaseContrib.Managers
 {
     public class LinksDatabaseManager
     {
-        public static Job UpdateReferencesAsync(Item item, string databaseName)
+        private readonly AutoResetEvent alldone = new AutoResetEvent(false);
+
+        private static LinksDatabaseManager instance;
+
+        private readonly int allowedThreads = 1;
+
+        private int threadCount = 0;
+
+        private LinksDatabaseManager()
         {
-            var options = new JobOptions("RemoveReferences", "links", Context.Site.Name, new LinksDatabaseManager(), "UpdateReferences", new object[] { item, databaseName })
-            {
-                AfterLife = TimeSpan.FromMinutes(1.0),
-                AtomicExecution = true
-            };
-            var job = new Job(options);
-            JobManager.Start(job);
-            return job;
+            allowedThreads = Config.MaxConcurrentThreads;
         }
 
-        public static Job RemoveReferencesAsync(Item item, string databaseName)
+        public static LinksDatabaseManager Instance
         {
-            var options = new JobOptions("RemoveReferences", "links", Context.Site.Name, new LinksDatabaseManager(), "RemoveReferences", new object[] { item, databaseName })
+            get { return instance ?? (instance = new LinksDatabaseManager()); }
+        }
+        public void UpdateReferencesAsync(Item item, string databaseName)
+        {
+            var callContext = new
             {
-                AfterLife = TimeSpan.FromMinutes(1.0),
-                AtomicExecution = true
+                Context.Site,
+                Context.User
             };
-            var job = new Job(options);
-            JobManager.Start(job);
-            return job;
+
+            if (TakeThread())
+            {
+                ManagedThreadPool.QueueUserWorkItem(x =>
+                {
+                    try
+                    {
+                        if (callContext.Site != null)
+                        {
+                            Context.SetActiveSite(callContext.Site.Name);
+                        }
+
+                        using (new UserSwitcher(callContext.User))
+                        {
+                            UpdateReferences(item, databaseName);
+                        }
+                    }
+                    finally
+                    {
+                        ReleaseThread();
+                    }
+                });
+            }
+            else
+            {
+                UpdateReferences(item, databaseName);
+            }
+        }
+
+        public void RemoveReferencesAsync(Item item, string databaseName)
+        {
+            var callContext = new
+            {
+                Context.Site,
+                Context.User
+            };
+
+            if (TakeThread())
+            {
+                ManagedThreadPool.QueueUserWorkItem(x =>
+                {
+                    try
+                    {
+                        if (callContext.Site != null)
+                        {
+                            Context.SetActiveSite(callContext.Site.Name);
+                        }
+
+                        using (new UserSwitcher(callContext.User))
+                        {
+                            RemoveReferences(item, databaseName);
+                        }
+                    }
+                    finally
+                    {
+                        ReleaseThread();
+                    }
+                });
+            }
+            else
+            {
+                RemoveReferences(item, databaseName);
+            }
         }
 
         public void RemoveReferences(Item item)
@@ -102,7 +167,7 @@ namespace Sitecorian.LinkDatabaseContrib.Managers
             }
         }
 
-        protected static void RemoveReferenceInTransaction(Item item, SqlConnection conn)
+        private void RemoveReferenceInTransaction(Item item, SqlConnection conn)
         {
             var tran = conn.BeginTransaction();
             try
@@ -118,7 +183,7 @@ namespace Sitecorian.LinkDatabaseContrib.Managers
             }
         }
 
-        protected static void UpdateReferenceInTransaction(Item item, SqlConnection conn)
+        private void UpdateReferenceInTransaction(Item item, SqlConnection conn)
         {
             var tran = conn.BeginTransaction();
             try
@@ -135,7 +200,7 @@ namespace Sitecorian.LinkDatabaseContrib.Managers
             }
         }
 
-        protected static void UpdateLinks(Item item, ItemLink[] links, SqlConnection conn, SqlTransaction tran)
+        private void UpdateLinks(Item item, ItemLink[] links, SqlConnection conn, SqlTransaction tran)
         {
             Assert.ArgumentNotNull(item, "item");
             Assert.ArgumentNotNull(links, "links");
@@ -151,7 +216,7 @@ namespace Sitecorian.LinkDatabaseContrib.Managers
             }
         }
 
-        protected static void RemoveLinks(Item item, SqlConnection conn, SqlTransaction tran)
+        private void RemoveLinks(Item item, SqlConnection conn, SqlTransaction tran)
         {
             Assert.ArgumentNotNull(item, "item");
             var sql = "DELETE FROM Links WHERE SourceItemID = '{0}' AND SourceDatabase='{1}'";
@@ -160,7 +225,7 @@ namespace Sitecorian.LinkDatabaseContrib.Managers
             command.ExecuteNonQuery();
         }
 
-        protected static void AddLink(Item item, ItemLink link, SqlConnection conn, SqlTransaction tran)
+        private void AddLink(Item item, ItemLink link, SqlConnection conn, SqlTransaction tran)
         {
             Assert.ArgumentNotNull(item, "item");
             Assert.ArgumentNotNull(link, "link");
@@ -170,9 +235,33 @@ namespace Sitecorian.LinkDatabaseContrib.Managers
             command.ExecuteNonQuery();
         }
 
-        protected static void LogError(string itemId, Exception exception)
+        private void LogError(string itemId, Exception exception)
         {
-            Log.Error("LinkDatabaseManager: Error Rebuilding Link Database for item: " + itemId, exception);
+            Log.Error(string.Format("LinkDatabaseManager: Error Rebuilding Link Database for item: {0}. Exception: {1}. Details {2}", itemId, exception, exception.StackTrace), new object());
+        }
+
+        private void ReleaseThread()
+        {
+            lock (this)
+            {
+                --threadCount;
+                if (threadCount == 0)
+                {
+                    alldone.Set();
+                }
+            }
+        }
+
+        private bool TakeThread()
+        {
+            lock (this)
+            {
+                if (threadCount >= allowedThreads)
+                    return false;
+
+                ++threadCount;
+                return true;
+            }
         }
     }
 }

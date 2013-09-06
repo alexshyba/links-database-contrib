@@ -1,12 +1,12 @@
 ﻿using System;
 using Sitecore.Configuration;
 using Sitecore.Diagnostics;
+using Sitecore.LinkDatabaseContrib.Managers;
 using Sitecore.Links;
 using Sitecore.Publishing;
 using Sitecore.Publishing.Pipelines.PublishItem;
-using Sitecorian.LinkDatabaseContrib.Managers;
 
-namespace Sitecorian.LinkDatabaseContrib.EventHandlers
+namespace Sitecore.LinkDatabaseContrib.EventHandlers
 {
     public class PublishEventHandler
     {
@@ -34,7 +34,7 @@ namespace Sitecorian.LinkDatabaseContrib.EventHandlers
                 // removed within OnItemProcessing method
                 if (item != null)
                 {
-                    LinksDatabaseManager.UpdateReferencesAsync(item, Database);
+                    LinksDatabaseManager.Instance.UpdateReferencesAsync(item, Database);
                 }
             }
         }
@@ -51,7 +51,7 @@ namespace Sitecorian.LinkDatabaseContrib.EventHandlers
                 {
                     var item = context.PublishHelper.GetTargetItem(context.ItemId);
                     Assert.IsNotNull(item, "Source item cannot be found");
-                    LinksDatabaseManager.RemoveReferencesAsync(item, Database);
+                    LinksDatabaseManager.Instance.RemoveReferencesAsync(item, Database);
                 }
             }
         }

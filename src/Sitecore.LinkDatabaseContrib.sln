@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sitecorian.LinkDatabaseContrib", "Sitecorian.LinkDatabaseContrib.csproj", "{62126319-9C76-4944-99CB-A3018E9EB4C3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sitecore.LinkDatabaseContrib", "Sitecore.LinkDatabaseContrib.csproj", "{62126319-9C76-4944-99CB-A3018E9EB4C3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
